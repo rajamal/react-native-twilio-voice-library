@@ -11,7 +11,7 @@ target 'example' do
 
   pod 'ReactNativePermissions', :path => '../node_modules/react-native-permissions'
 
-  pod 'react-native-twilio-voice-library', :path => '../node_modules/react-native-twilio-voice-library'
+  # pod 'react-native-twilio-voice-library', :path => '../node_modules/react-native-twilio-voice-library'
 
 end
 
