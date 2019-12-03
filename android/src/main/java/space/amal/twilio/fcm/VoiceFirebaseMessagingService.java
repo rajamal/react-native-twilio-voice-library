@@ -122,7 +122,12 @@ public class VoiceFirebaseMessagingService extends FirebaseMessagingService {
 
                 @Override
                 public void onCancelledCallInvite(@NonNull CancelledCallInvite cancelledCallInvite, @Nullable CallException callException) {
-                    VoiceFirebaseMessagingService.this.cancelNotification(cancelledCallInvite);
+                    Handler handler = new Handler(Looper.getMainLooper());
+                    handler.post(new Runnable() {
+                        public void run() {
+                            VoiceFirebaseMessagingService.this.cancelNotification(cancelledCallInvite);
+                        }
+                    });
                 }
             });
         }
