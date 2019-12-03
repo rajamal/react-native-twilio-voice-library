@@ -1,0 +1,6 @@
+rootProject.name = 'example'
+
+include ':react-native-twilio-voice-library'
+project(':react-native-twilio-voice-library').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-twilio-voice-library/android')
+
+include ':app'

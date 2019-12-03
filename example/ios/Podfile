@@ -1,0 +1,17 @@
+# Uncomment the next line to define a global platform for your project
+# platform :ios, '10.0'
+
+target 'example' do
+  # Comment the next line if you don't want to use dynamic frameworks
+  use_frameworks!
+  platform :ios, '10.0'
+
+  pod 'TwilioVoice', '~> 5.1'
+  pod 'RNPermissions', :path => '../node_modules/react-native-permissions'
+
+  pod 'ReactNativePermissions', :path => '../node_modules/react-native-permissions'
+
+  pod 'react-native-twilio-voice-library', :path => '../node_modules/react-native-twilio-voice-library'
+
+end
+
