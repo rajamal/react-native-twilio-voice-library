@@ -194,7 +194,7 @@ public class VoiceFirebaseMessagingService extends FirebaseMessagingService {
             callNotificationManager.createIncomingCallNotification(context, callInvite, notificationId, launchIntent);
         } else {
             SoundPoolManager.getInstance(context.getBaseContext()).stopRinging();
-            callNotificationManager.removeIncomingCallNotification(context, callInvite, 0);
+            callNotificationManager.removeIncomingCallNotification(context, callInvite, notificationId);
         }
     }
 }

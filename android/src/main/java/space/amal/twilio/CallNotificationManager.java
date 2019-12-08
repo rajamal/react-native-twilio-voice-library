@@ -323,7 +323,7 @@ public class CallNotificationManager {
             for (StatusBarNotification statusBarNotification : activeNotifications) {
                 Notification notification = statusBarNotification.getNotification();
                 String notificationType = notification.extras.getString(NOTIFICATION_TYPE);
-                if (callInvite.getCallSid().equals(notification.extras.getString(CALL_SID_KEY)) &&
+                if (callInvite != null && callInvite.getCallSid().equals(notification.extras.getString(CALL_SID_KEY)) &&
                         notificationType != null && notificationType.equals(ACTION_INCOMING_CALL)) {
                     notificationManager.cancel(notification.extras.getInt(INCOMING_CALL_NOTIFICATION_ID));
                 }
@@ -360,7 +360,7 @@ public class CallNotificationManager {
             for (StatusBarNotification statusBarNotification : activeNotifications) {
                 Notification notification = statusBarNotification.getNotification();
                 String notificationType = notification.extras.getString(NOTIFICATION_TYPE);
-                if (callInvite.getCallSid().equals(notification.extras.getString(CALL_SID_KEY)) &&
+                if (callInvite != null && callInvite.getCallSid().equals(notification.extras.getString(CALL_SID_KEY)) &&
                         notificationType != null && notificationType.equals(ACTION_INCOMING_CALL)) {
                     notificationManager.cancel(notification.extras.getInt(INCOMING_CALL_NOTIFICATION_ID));
                 }
