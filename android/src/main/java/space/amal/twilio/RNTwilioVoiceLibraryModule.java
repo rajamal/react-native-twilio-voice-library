@@ -450,6 +450,7 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
                     params.putString("call_sid", activeCallInvite.getCallSid());
                     params.putString("call_from", activeCallInvite.getFrom());
                     params.putString("call_to", activeCallInvite.getTo());
+                    Log.d(TAG, "sending EVENT_DEVICE_DID_RECEIVE_INCOMING event");
                     eventManager.sendEvent(EVENT_DEVICE_DID_RECEIVE_INCOMING, params);
                 }
 
@@ -566,7 +567,7 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
             if (RNTwilioVoiceLibraryModule.callNotificationMap.containsKey(notificationKey)) {
                 notificationId = RNTwilioVoiceLibraryModule.callNotificationMap.get(notificationKey);
             }
-            callNotificationManager.removeIncomingCallNotification(getReactApplicationContext(), null, notificationId);
+            callNotificationManager.removeIncomingCallNotification(getReactApplicationContext(), callInvite, notificationId);
             RNTwilioVoiceLibraryModule.callNotificationMap.remove(notificationKey);
         }
 //        activeCallInvite = null;
@@ -598,6 +599,9 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
     public void accept() {
         callAccepted = true;
         SoundPoolManager.getInstance(getReactApplicationContext()).stopRinging();
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "In accept()");
+        }
         if (activeCallInvite != null){
             if (BuildConfig.DEBUG) {
                 Log.d(TAG, "accept() activeCallInvite.getState() PENDING");
@@ -608,9 +612,14 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
             params.putString("call_sid",   activeCallInvite.getCallSid());
             params.putString("call_from",  activeCallInvite.getFrom());
             params.putString("call_to",    activeCallInvite.getTo());
+            params.putString("call_state", "CONNECTED");
             callNotificationManager.createHangupLocalNotification(getReactApplicationContext(),
                     activeCallInvite.getCallSid(),
                     activeCallInvite.getFrom());
+
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Sending EVENT_CONNECTION_DID_CONNECT");
+            }
             eventManager.sendEvent(EVENT_CONNECTION_DID_CONNECT, params);
 
             /*
