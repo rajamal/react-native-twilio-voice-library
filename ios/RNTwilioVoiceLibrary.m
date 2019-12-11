@@ -290,15 +290,15 @@ RCT_REMAP_METHOD(getActiveCall,
   if (!self.callInvite) {
     [self handleCallInviteReceived:callInvite];
   } else {
+    [callInvite reject];
     [self handleCallInviteCanceled:callInvite];
   }
 }
 
 - (void)cancelledCallInviteReceived:(TVOCancelledCallInvite *)cancelledCallInvite error:(NSError *)error {
   if (self.callInvite && [self.callInvite.callSid isEqual:cancelledCallInvite.callSid]) {
-    self.callInvite = nil;
-  } else {
     [self handleCallInviteCanceled:self.callInvite];
+    self.callInvite = nil;
   }
 }
 
@@ -324,22 +324,21 @@ RCT_REMAP_METHOD(getActiveCall,
   [self performEndCallActionWithUUID:callInvite.uuid];
   
   NSMutableDictionary *params = [[NSMutableDictionary alloc] init];
-  if (self.callInvite.callSid){
-    [params setObject:self.callInvite.callSid forKey:@"call_sid"];
+  if (callInvite.callSid){
+    [params setObject:callInvite.callSid forKey:@"call_sid"];
   }
   
-  if (self.callInvite.from){
-    [params setObject:self.callInvite.from forKey:@"from"];
+  if (callInvite.from){
+    [params setObject:callInvite.from forKey:@"from"];
   }
-  if (self.callInvite.to){
-    [params setObject:self.callInvite.to forKey:@"to"];
+  if (callInvite.to){
+    [params setObject:callInvite.to forKey:@"to"];
   }
   
   [params setObject:@"CALL_INVITE_CANCELLED" forKey:@"call_state"];
   [self sendEventWithName:@"connectionDidDisconnect" body:params];
-  
-  self.callInvite = nil;
 }
+
 
 - (void)notificationError:(NSError *)error {
   NSLog(@"notificationError: %@", [error localizedDescription]);
@@ -532,9 +531,11 @@ RCT_REMAP_METHOD(getActiveCall,
   NSLog(@"provider:performEndCallAction");
   if (self.callInvite) {
     [self.callInvite reject];
+    [self sendEventWithName:@"callRejected" body:@"callRejected"];
     self.callInvite = nil;
   } else if (self.call) {
     [self.call disconnect];
+    [self sendEventWithName:@"connectionDidDisconnect" body:[self paramsFromCall:self.call]];
     self.call = nil;
   } else {
     NSLog(@"No call or call invite to be ended.");
