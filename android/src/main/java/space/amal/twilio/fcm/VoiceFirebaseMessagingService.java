@@ -31,6 +31,8 @@ import com.twilio.voice.Voice;
 import java.util.Map;
 import java.util.Random;
 
+import static space.amal.twilio.RNTwilioVoiceLibraryModule.ACTION_CANCELLED_CALL;
+import static space.amal.twilio.RNTwilioVoiceLibraryModule.CANCELLED_CALL_INVITE;
 import static space.amal.twilio.RNTwilioVoiceLibraryModule.TAG;
 import static space.amal.twilio.RNTwilioVoiceLibraryModule.ACTION_INCOMING_CALL;
 import static space.amal.twilio.RNTwilioVoiceLibraryModule.INCOMING_CALL_INVITE;
@@ -122,12 +124,27 @@ public class VoiceFirebaseMessagingService extends FirebaseMessagingService {
 
                 @Override
                 public void onCancelledCallInvite(@NonNull final CancelledCallInvite cancelledCallInvite, @Nullable CallException callException) {
+                    Log.d(TAG, "Received Cancelled Call Invite");
                     Handler handler = new Handler(Looper.getMainLooper());
                     handler.post(new Runnable() {
                         public void run() {
+                            ReactInstanceManager mReactInstanceManager = ((ReactApplication) getApplication()).getReactNativeHost().getReactInstanceManager();
+                            ReactContext context = mReactInstanceManager.getCurrentReactContext();
+                            if (context != null) {
+                                int appImportance = callNotificationManager.getApplicationImportance((ReactApplicationContext)context);
+                                if (BuildConfig.DEBUG) {
+                                    Log.d(TAG, "CONTEXT present appImportance = " + appImportance);
+                                }
+                                callNotificationManager.createMissedCallNotification(
+                                        (ReactApplicationContext)context,
+                                        cancelledCallInvite
+                                );
+                                VoiceFirebaseMessagingService.this.handleCancelledCall((ReactApplicationContext)context, cancelledCallInvite);
+                            }
                             VoiceFirebaseMessagingService.this.cancelNotification(cancelledCallInvite);
                         }
                     });
+
                 }
             });
         }
@@ -156,6 +173,14 @@ public class VoiceFirebaseMessagingService extends FirebaseMessagingService {
                 }});
         }
 
+    }
+
+    private void handleCancelledCall(ReactApplicationContext context,
+                                     CancelledCallInvite callInvite
+    ) {
+        Intent intent = new Intent(ACTION_CANCELLED_CALL);
+        intent.putExtra(CANCELLED_CALL_INVITE, callInvite);
+        LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
     }
 
     private void handleIncomingCall(ReactApplicationContext context,

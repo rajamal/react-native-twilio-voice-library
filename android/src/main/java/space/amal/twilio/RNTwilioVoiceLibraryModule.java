@@ -45,6 +45,7 @@ import com.google.firebase.iid.FirebaseInstanceId;
 import com.twilio.voice.Call;
 import com.twilio.voice.CallException;
 import com.twilio.voice.CallInvite;
+import com.twilio.voice.CancelledCallInvite;
 import com.twilio.voice.ConnectOptions;
 import com.twilio.voice.LogLevel;
 import com.twilio.voice.RegistrationException;
@@ -83,11 +84,14 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
 
     public static final String INCOMING_CALL_INVITE          = "INCOMING_CALL_INVITE";
     public static final String INCOMING_CALL_NOTIFICATION_ID = "INCOMING_CALL_NOTIFICATION_ID";
+    public static final String CANCELLED_CALL_SSID = "CANCELLED_CALL_SSID";
+    public static final String CANCELLED_CALL_INVITE = "CANCELLED_CALL_INVITE";
     public static final String NOTIFICATION_TYPE             = "NOTIFICATION_TYPE";
 
     public static final String ACTION_INCOMING_CALL = "space.amal.twilio.INCOMING_CALL";
     public static final String ACTION_FCM_TOKEN     = "space.amal.twilio.ACTION_FCM_TOKEN";
     public static final String ACTION_MISSED_CALL   = "space.amal.twilio.MISSED_CALL";
+    public static final String ACTION_CANCELLED_CALL   = "space.amal.twilio.CANCELLED_CALL";
     public static final String ACTION_ANSWER_CALL   = "space.amal.twilio.ANSWER_CALL";
     public static final String ACTION_REJECT_CALL   = "space.amal.twilio.REJECT_CALL";
     public static final String ACTION_HANGUP_CALL   = "space.amal.twilio.HANGUP_CALL";
@@ -358,6 +362,7 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
             IntentFilter intentFilter = new IntentFilter();
             intentFilter.addAction(ACTION_INCOMING_CALL);
             intentFilter.addAction(ACTION_MISSED_CALL);
+            intentFilter.addAction(ACTION_CANCELLED_CALL);
             LocalBroadcastManager.getInstance(getReactApplicationContext()).registerReceiver(
                     voiceBroadcastReceiver, intentFilter);
             registerActionReceiver();
@@ -399,6 +404,7 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
                         SharedPreferences.Editor sharedPrefEditor = sharedPref.edit();
                         sharedPrefEditor.putInt(MISSED_CALLS_GROUP, 0);
                         sharedPrefEditor.commit();
+                        break;
                 }
                 // Dismiss the notification when the user tap on the relative notification action
                 // eventually the notification will be cleared anyway
@@ -418,6 +424,28 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
         // Ignored, required to implement ActivityEventListener for RN 0.33
     }
 
+    private void handleMissedCallIntent(Intent intent) {
+        if (intent == null || intent.getAction() == null) {
+            Log.e(TAG, "handleMissedCallIntent intent is null");
+            return;
+        }
+        Log.d(TAG, "in handleMissedCallIntent");
+        int appImportance = callNotificationManager.getApplicationImportance(getReactApplicationContext());
+        if (appImportance == RunningAppProcessInfo.IMPORTANCE_FOREGROUND ||
+                appImportance == RunningAppProcessInfo.IMPORTANCE_SERVICE) {
+
+            Log.d(TAG, "handleMissedCallIntent");
+            CancelledCallInvite cancelled = intent.getParcelableExtra(CANCELLED_CALL_INVITE);
+            WritableMap params = Arguments.createMap();
+            params.putString("call_sid", cancelled.getCallSid());
+            params.putString("call_from", cancelled.getFrom());
+            params.putString("call_to", cancelled.getTo());
+            Log.d(TAG, "sending handleMissedCallIntent:EVENT_DEVICE_DID_DISCONNECT event");
+            eventManager.sendEvent(EVENT_CONNECTION_DID_DISCONNECT, params);
+        }
+        activeCallInvite = null;
+    }
+
     private void handleIncomingCallIntent(Intent intent) {
         if (intent == null || intent.getAction() == null) {
             Log.e(TAG, "handleIncomingCallIntent intent is null");
@@ -425,10 +453,17 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
         }
 
         if (intent.getAction().equals(ACTION_INCOMING_CALL)) {
-            activeCallInvite = intent.getParcelableExtra(INCOMING_CALL_INVITE);
+            CallInvite incoming = intent.getParcelableExtra(INCOMING_CALL_INVITE);
 
-            if (activeCallInvite != null) {
+            if (incoming!= null) {
+                if (activeCallInvite != null || activeCall != null) {
+                    // Reject the incoming call
+                    Log.d(TAG, "Rejecting call because another call Invite present");
+                    incoming.reject(getReactApplicationContext());
+                    return;
+                }
                 callAccepted = false;
+                activeCallInvite = incoming;
                 if (BuildConfig.DEBUG) {
                     Log.d(TAG, "handleIncomingCallIntent state = PENDING");
                 }
@@ -455,46 +490,6 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
                 }
 
 
-            } else {
-                if (BuildConfig.DEBUG) {
-                    Log.d(TAG, "====> BEGIN handleIncomingCallIntent when activeCallInvite != PENDING");
-                }
-                // this block is executed when the callInvite is cancelled and:
-                //   - the call is answered (activeCall != null)
-                //   - the call is rejected
-
-                SoundPoolManager.getInstance(getReactApplicationContext()).stopRinging();
-
-                // the call is not active yet
-                if (activeCall == null) {
-
-                    if (activeCallInvite != null) {
-
-                        if (BuildConfig.DEBUG) {
-                            Log.d(TAG, "activeCallInvite was cancelled by " + activeCallInvite.getFrom());
-                        }
-                        if (!callAccepted) {
-
-                            callNotificationManager.createMissedCallNotification(getReactApplicationContext(), activeCallInvite);
-                            int appImportance = callNotificationManager.getApplicationImportance(getReactApplicationContext());
-                            if (appImportance != RunningAppProcessInfo.IMPORTANCE_BACKGROUND) {
-                                WritableMap params = Arguments.createMap();
-                                params.putString("call_sid", activeCallInvite.getCallSid());
-                                params.putString("call_from", activeCallInvite.getFrom());
-                                params.putString("call_to", activeCallInvite.getTo());
-                                eventManager.sendEvent(EVENT_CONNECTION_DID_DISCONNECT, params);
-                            }
-                        }
-                    }
-                    clearIncomingNotification(activeCallInvite);
-                } else {
-                    if (BuildConfig.DEBUG) {
-                        Log.d(TAG, "activeCallInvite was answered. Call " + activeCall);
-                    }
-                }
-                if (BuildConfig.DEBUG) {
-                    Log.d(TAG, "====> END");
-                }
             }
         } else if (intent.getAction().equals(ACTION_FCM_TOKEN)) {
             if (BuildConfig.DEBUG) {
@@ -519,6 +514,9 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
                 SharedPreferences.Editor sharedPrefEditor = sharedPref.edit();
                 sharedPrefEditor.remove(MISSED_CALLS_GROUP);
                 sharedPrefEditor.commit();
+            } else if (action.equals(ACTION_CANCELLED_CALL)) {
+                Log.d(TAG, "In ACTION_CANCELLED_CALL");
+                handleMissedCallIntent(intent);
             } else {
                 Log.e(TAG, "received broadcast unhandled action " + action);
             }
@@ -653,6 +651,7 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
             activeCallInvite.reject(getReactApplicationContext());
             clearIncomingNotification(activeCallInvite);
         }
+        activeCallInvite = null;
         eventManager.sendEvent(EVENT_CONNECTION_DID_DISCONNECT, params);
     }
 
@@ -729,6 +728,7 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
     @ReactMethod
     public void disconnect() {
         if (activeCall != null) {
+            activeCallInvite = null;
             activeCall.disconnect();
             activeCall = null;
         }
