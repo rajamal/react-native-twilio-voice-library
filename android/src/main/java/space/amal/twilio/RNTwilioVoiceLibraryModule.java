@@ -131,7 +131,7 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
     private EventManager eventManager;
 
     public RNTwilioVoiceLibraryModule(ReactApplicationContext reactContext,
-                             boolean shouldAskForMicPermission) {
+                                      boolean shouldAskForMicPermission) {
         super(reactContext);
         if (BuildConfig.DEBUG) {
             Voice.setLogLevel(LogLevel.DEBUG);
@@ -282,6 +282,7 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
                 }
                 if (callSid != null && activeCall != null && activeCall.getSid() != null && activeCall.getSid().equals(callSid)) {
                     activeCall = null;
+                    activeCallInvite = null;
                 }
                 eventManager.sendEvent(EVENT_CONNECTION_DID_DISCONNECT, params);
                 callNotificationManager.removeHangupNotification(getReactApplicationContext());
@@ -313,6 +314,7 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
                 }
                 if (callSid != null && activeCall != null && activeCall.getSid() != null && activeCall.getSid().equals(callSid)) {
                     activeCall = null;
+                    activeCallInvite = null;
                 }
                 eventManager.sendEvent(EVENT_CONNECTION_DID_DISCONNECT, params);
                 callNotificationManager.removeHangupNotification(getReactApplicationContext());
@@ -728,10 +730,10 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
     @ReactMethod
     public void disconnect() {
         if (activeCall != null) {
-            activeCallInvite = null;
             activeCall.disconnect();
             activeCall = null;
         }
+        activeCallInvite = null;
     }
 
     @ReactMethod
