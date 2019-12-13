@@ -492,7 +492,15 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
                     params.putString("call_from", activeCallInvite.getFrom());
                     params.putString("call_to", activeCallInvite.getTo());
                     Log.d(TAG, "sending EVENT_DEVICE_DID_RECEIVE_INCOMING event");
-                    eventManager.sendEvent(EVENT_DEVICE_DID_RECEIVE_INCOMING, params);
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+
+                            eventManager.sendEvent(EVENT_DEVICE_DID_RECEIVE_INCOMING, params);
+                        }
+                    }, 2000);
+                }
+
                 }
 
 
