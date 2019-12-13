@@ -302,6 +302,8 @@ RCT_REMAP_METHOD(getActiveCall,
   }
 }
 
+
+
 - (void)handleCallInviteReceived:(TVOCallInvite *)callInvite {
   NSLog(@"callInviteReceived:");
   if (self.callInvite) {
@@ -338,7 +340,6 @@ RCT_REMAP_METHOD(getActiveCall,
   [params setObject:@"CALL_INVITE_CANCELLED" forKey:@"call_state"];
   [self sendEventWithName:@"connectionDidDisconnect" body:params];
 }
-
 
 - (void)notificationError:(NSError *)error {
   NSLog(@"notificationError: %@", [error localizedDescription]);
@@ -530,8 +531,8 @@ RCT_REMAP_METHOD(getActiveCall,
 - (void)provider:(CXProvider *)provider performEndCallAction:(CXEndCallAction *)action {
   NSLog(@"provider:performEndCallAction");
   if (self.callInvite) {
-    [self.callInvite reject];
     [self sendEventWithName:@"callRejected" body:@"callRejected"];
+    [self.callInvite reject];
     self.callInvite = nil;
   } else if (self.call) {
     [self.call disconnect];
@@ -635,6 +636,10 @@ RCT_REMAP_METHOD(getActiveCall,
     __strong typeof(self) strongSelf = weakSelf;
     builder.params = _callParams;
     builder.uuid = uuid;
+      if (_callParams[@"maxBitRate"]) {
+          TVOAudioCodec *preferredCodec = [[TVOOpusCodec alloc] initWithMaxAverageBitrate:[_callParams[@"maxBitRate"] intValue]];
+          builder.preferredAudioCodecs = @[preferredCodec];
+      }
   }];
   TVOCall *call = [TwilioVoice connectWithOptions:connectOptions delegate:self];
   if (call) {

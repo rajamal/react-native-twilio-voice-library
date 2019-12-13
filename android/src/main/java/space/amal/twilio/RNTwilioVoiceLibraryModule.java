@@ -15,6 +15,7 @@ import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.os.Build;
 
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -42,16 +43,20 @@ import com.facebook.react.bridge.ReactMethod;
 
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.iid.FirebaseInstanceId;
+import com.twilio.voice.AudioCodec;
 import com.twilio.voice.Call;
 import com.twilio.voice.CallException;
 import com.twilio.voice.CallInvite;
 import com.twilio.voice.CancelledCallInvite;
 import com.twilio.voice.ConnectOptions;
 import com.twilio.voice.LogLevel;
+import com.twilio.voice.OpusCodec;
 import com.twilio.voice.RegistrationException;
 import com.twilio.voice.RegistrationListener;
 import com.twilio.voice.Voice;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -487,7 +492,7 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
                 if (appImportance == RunningAppProcessInfo.IMPORTANCE_FOREGROUND ||
                         appImportance == RunningAppProcessInfo.IMPORTANCE_SERVICE) {
 
-                    WritableMap params = Arguments.createMap();
+                    final WritableMap params = Arguments.createMap();
                     params.putString("call_sid", activeCallInvite.getCallSid());
                     params.putString("call_from", activeCallInvite.getFrom());
                     params.putString("call_to", activeCallInvite.getTo());
@@ -495,16 +500,14 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
                     new Handler().postDelayed(new Runnable() {
                         @Override
                         public void run() {
-
                             eventManager.sendEvent(EVENT_DEVICE_DID_RECEIVE_INCOMING, params);
                         }
                     }, 2000);
                 }
 
-                }
-
-
             }
+
+
         } else if (intent.getAction().equals(ACTION_FCM_TOKEN)) {
             if (BuildConfig.DEBUG) {
                 Log.d(TAG, "handleIncomingCallIntent ACTION_FCM_TOKEN");
@@ -733,10 +736,12 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
                     break;
             }
         }
-        ConnectOptions connectOptions = new ConnectOptions.Builder(accessToken)
-                .params(twiMLParams)
-                .build();
-        activeCall = Voice.connect(getReactApplicationContext(), connectOptions, callListener);
+        ConnectOptions.Builder connectOptionsBuilder = new ConnectOptions.Builder(accessToken)
+                .params(twiMLParams);
+        if (params.hasKey("maxBitRate")) {
+            connectOptionsBuilder.preferAudioCodecs(new ArrayList<AudioCodec>(Arrays.asList(new OpusCodec(params.getInt("maxBitRate")))));
+        }
+        activeCall = Voice.connect(getReactApplicationContext(), connectOptionsBuilder.build(), callListener);
     }
 
     @ReactMethod
