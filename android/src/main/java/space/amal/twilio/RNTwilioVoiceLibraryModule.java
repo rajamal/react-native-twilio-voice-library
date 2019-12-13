@@ -202,6 +202,10 @@ public class RNTwilioVoiceLibraryModule extends ReactContextBaseJavaModule imple
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "onNewIntent " + intent.toString());
         }
+        if (android.os.Build.VERSION.SDK_INT < 29) {
+            Log.w("RNTwilioVoiceAmal", "Ignored Duplicate Call to HandleIncoming");
+            return;
+        }
         handleIncomingCallIntent(intent);
     }
 
